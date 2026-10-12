@@ -190,3 +190,65 @@ Artık LLM'lerle çalışmak için taze bir ortamınız var.
 Her zaman `langchain-env` ortamını kullandığınızı kontrol etmeyi unutmayın. Özellikle VS Code kullanırken, bu yeni ortamı seçtiğinizden emin olun.
 
 Bu projeyi commit etmeyi ve push yapmayı unutmayın.
+
+---
+
+## 🛠️ My Setup Notes
+
+### Folder structure
+
+The env is pinned to a wrapper folder for the whole unit, not to `~/projects`:
+
+```
+~/projects/
+├── llm-unit/                      # pyenv local → langchain-env
+│   ├── .python-version
+│   ├── .env                       # shared credentials, outside any repo
+│   └── S19D3-S-data-langchain-env/
+└── ...                            # other projects → workintech env
+```
+
+`pyenv local` applies to the folder it's set in and all its subfolders. Pinning it to `llm-unit/` means every challenge in this unit uses `langchain-env` automatically, while the rest of `~/projects` keeps the bootcamp env. Keeping `.env` in `llm-unit/` also guarantees it can't be committed.
+
+### Creating the environment
+
+```bash
+cd ~/projects/llm-unit
+pyenv virtualenv 3.12.9 langchain-env
+pyenv local langchain-env
+pip install --upgrade pip
+cd S19D3-S-data-langchain-env
+pip install -r requirements.txt
+```
+
+### Running both environments in parallel
+
+The active env is resolved by directory, so there is no manual activate/deactivate:
+
+```bash
+cd ~/projects/llm-unit/S19D3-S-data-langchain-env
+pyenv version                  # langchain-env
+pip list | grep -i langchain   # langchain packages present
+
+cd ~/projects
+pyenv version                  # workintech
+pip list | grep -i langchain   # empty → no leakage
+```
+
+### Authentication: Gemini API key instead of Vertex AI
+
+The GCP free trial on my account had ended (both billing accounts closed), so Vertex AI couldn't be enabled. I used the standalone Gemini Developer API instead:
+
+```bash
+cp .env.gemini.sample ../.env   # then set GEMINI_API_KEY
+```
+
+`load_dotenv()` searches parent folders, so it finds `llm-unit/.env`, and `genai.Client()` reads `GEMINI_API_KEY` automatically. Switching back to Vertex only requires replacing `../.env` with the Vertex template.
+
+### Model change in `check.ipynb`
+
+`gemini-2.5-flash-lite` returns `404 NOT_FOUND` for new users. I replaced it with `gemini-3.5-flash-lite`, which the API error message recommends. Note that `client.models.list()` still lists 2.5, but calling it fails.
+
+### Using the env in VS Code
+
+When opening a notebook: **Select Kernel → Python Environments → `langchain-env`** (`~/.pyenv/versions/langchain-env/bin/python`). Running `jupyter` from a terminal inside `llm-unit/` picks it up automatically.
